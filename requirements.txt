@@ -1,0 +1,4 @@
+Flask==0.12.2
+matplotlib==2.0.2
+plotly==1.9.6
+numpy==1.11.3
