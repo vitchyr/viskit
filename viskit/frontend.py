@@ -648,7 +648,6 @@ def parse_float_arg(args, key):
 
 @app.route("/plot_div")
 def plot_div():
-    #     reload_data()
     args = flask.request.args
     plot_key = args.get("plot_key")
     split_keys_json = args.get("split_keys", "[]")
@@ -750,11 +749,15 @@ def index():
     )
 
 
-def reload_data():
+def reload_data(data_filename):
     global exps_data
     global plottable_keys
     global distinct_params
-    exps_data = core.load_exps_data(args.data_paths, args.disable_variant)
+    exps_data = core.load_exps_data(
+        args.data_paths,
+        data_filename,
+        args.disable_variant,
+    )
     plottable_keys = list(
         set(flatten(list(exp.progress.keys()) for exp in exps_data)))
     plottable_keys = sorted([k for k in plottable_keys if k is not None])
@@ -768,6 +771,7 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", default=False)
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--disable-variant", default=False, action='store_true')
+    parser.add_argument("--dname", default='progress.csv', help='name of data file')
     args = parser.parse_args(sys.argv[1:])
 
     # load all folders following a prefix
@@ -780,7 +784,7 @@ if __name__ == "__main__":
             if os.path.isdir(path) and (subdirprefix in subdirname):
                 args.data_paths.append(path)
     print("Importing data from {path}...".format(path=args.data_paths))
-    reload_data()
+    reload_data(args.dname)
     # port = 5000
     # url = "http://0.0.0.0:{0}".format(port)
     print("Done! View http://localhost:%d in your browser" % args.port)
