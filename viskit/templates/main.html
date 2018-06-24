@@ -82,16 +82,16 @@
             </div>
         </div>
         <div class="form-group">
-            <label class="control-label pull-left">Y-Axis Attribute: </label>
+            <label class="control-label pull-left">Y-Axis Attributes: </label>
             <div class="btn-group pull-left" style="margin-left: 10px">
-                <button data-toggle="dropdown" class="btn btn-default dropdown-toggle">{{ plot_key }}<span
+                <button data-toggle="dropdown" class="btn btn-default dropdown-toggle">{{ plot_keys }}<span
                         class="caret"></span></button>
                 <ul class="dropdown-menu">
                     {% for plottable_key in plottable_keys %}
                         <li>
-                            <input type="radio" id="plot_key_{{ loop.index0 }}" name="plot_key"
+                            <input type="checkbox" id="plot_key_{{ loop.index0 }}" name="plot_key"
                                    value="{{ loop.index0 }}"
-                                    {% if plottable_key == plot_key %}
+                                    {% if plottable_key in plot_keys %}
                                    checked
                                     {% endif %}
                             />
@@ -257,8 +257,10 @@
         $("#status").html("Updating");
 
         var $controlPanel = $(".control-panel");
-        var plotIndex = $controlPanel.find("input[name=plot_key]:checked").val();
-        var plotKey = plottableKeys[plotIndex];
+        var plotKeys = []
+        $controlPanel.find("input[name=plot_key]:checked").each(function() {
+            plotKeys.push(plottableKeys[$(this).val()]);
+        });
         var splitKeys = [];
         $.each($("div.split-key-selector"), function (itr, div) {
             var val = $(div).find("input:checked").val();
@@ -338,7 +340,7 @@
         console.log("updating");
         $.get("/plot_div",
                 $.extend({
-                    "plot_key": plotKey,
+                    "plot_keys": JSON.stringify(plotKeys),
                     "split_keys": JSON.stringify(splitKeys),
                     "group_keys": JSON.stringify(groupKeys),
                     "best_filter_key": bestFilterKey,

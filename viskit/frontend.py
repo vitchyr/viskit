@@ -13,6 +13,7 @@ import sys
 import argparse
 import json
 import numpy as np
+from plotly import tools
 import plotly.offline as po
 import plotly.graph_objs as go
 
@@ -55,56 +56,70 @@ def send_css(path):
     return flask.send_from_directory('css', path)
 
 
-def make_plot(plot_list, use_median=False, plot_width=None, plot_height=None,
-              title=None):
-    data = []
+def make_plot(
+        plot_lists,
+        use_median=False,
+        plot_width=None,
+        plot_height=None,
+        title=None,
+    ):
+    """
+    plot_lists is a list of lists.
+    Each outer list represents different y-axis attributes.
+    Each inner list represents different experiments to run, within that y-axis
+    attribute.
+    Each plot is an AttrDict which should have the elements used below.
+    """
     p25, p50, p75 = [], [], []
-    for idx, plt in enumerate(plot_list):
-        color = core.color_defaults[idx % len(core.color_defaults)]
-        if use_median:
-            p25.append(np.mean(plt.percentile25))
-            p50.append(np.mean(plt.percentile50))
-            p75.append(np.mean(plt.percentile75))
-            x = list(range(len(plt.percentile50)))
-            y = list(plt.percentile50)
-            y_upper = list(plt.percentile75)
-            y_lower = list(plt.percentile25)
-        else:
-            x = list(range(len(plt.means)))
-            y = list(plt.means)
-            y_upper = list(plt.means + plt.stds)
-            y_lower = list(plt.means - plt.stds)
-
-        data.append(go.Scatter(
-            x=x + x[::-1],
-            y=y_upper + y_lower[::-1],
-            fill='tozerox',
-            fillcolor=core.hex_to_rgb(color, 0.2),
-            line=go.Line(color='transparent'),
-            showlegend=False,
-            legendgroup=plt.legend,
-            hoverinfo='none'
-        ))
-        data.append(go.Scatter(
-            x=x,
-            y=y,
-            name=plt.legend,
-            legendgroup=plt.legend,
-            line=dict(color=core.hex_to_rgb(color)),
-        ))
-
-    layout = go.Layout(
-        legend=dict(
-            x=1,
-            y=1,
-            # xanchor="left",
-            # yanchor="bottom",
-        ),
+    num_y_axes = len(plot_lists)
+    fig = tools.make_subplots(rows=num_y_axes, cols=1, print_grid=False)
+    fig['layout'].update(
         width=plot_width,
         height=plot_height,
         title=title,
     )
-    fig = go.Figure(data=data, layout=layout)
+    for y_idx, plot_list in enumerate(plot_lists):
+        for idx, plt in enumerate(plot_list):
+            color = core.color_defaults[idx % len(core.color_defaults)]
+            if use_median:
+                p25.append(np.mean(plt.percentile25))
+                p50.append(np.mean(plt.percentile50))
+                p75.append(np.mean(plt.percentile75))
+                x = list(range(len(plt.percentile50)))
+                y = list(plt.percentile50)
+                y_upper = list(plt.percentile75)
+                y_lower = list(plt.percentile25)
+            else:
+                x = list(range(len(plt.means)))
+                y = list(plt.means)
+                y_upper = list(plt.means + plt.stds)
+                y_lower = list(plt.means - plt.stds)
+
+            errors = go.Scatter(
+                x=x + x[::-1],
+                y=y_upper + y_lower[::-1],
+                fill='tozerox',
+                fillcolor=core.hex_to_rgb(color, 0.2),
+                line=go.Line(color='transparent'),
+                showlegend=False,
+                legendgroup=plt.legend,
+                hoverinfo='none'
+            )
+            values = go.Scatter(
+                x=x,
+                y=y,
+                name=plt.legend,
+                legendgroup=plt.legend,
+                line=dict(color=core.hex_to_rgb(color)),
+            )
+            # plotly is 1-indexed like matplotlib for subplots
+            y_idx_plotly = y_idx + 1
+            fig.append_trace(values, y_idx_plotly, 1)
+            fig.append_trace(errors, y_idx_plotly, 1)
+            fig['layout']['yaxis{}'.format(y_idx_plotly)].update(
+                title=plt.plot_key,
+            )
+
     fig_div = po.plot(fig, output_type='div', include_plotlyjs=False)
     if "footnote" in plot_list[0]:
         footnote = "<br />".join([
@@ -215,7 +230,7 @@ def check_nan(exp):
 
 
 def get_plot_instruction(
-        plot_key,
+        plot_keys,
         split_keys=None,
         group_keys=None,
         best_filter_key=None,
@@ -272,13 +287,11 @@ def get_plot_instruction(
         split_titles = ["Plot"]
     plots = []
     counter = 1
-    print("Plot_key:", plot_key)
+    print("Plot_keys:", plot_keys)
     print("split_keys:", split_keys)
     print("group_keys:", group_keys)
-    print("filters:")
-    print(filters)
-    print("exclusions:")
-    print(exclusions)
+    print("filters:", filters)
+    print("exclusions:", exclusions)
     for split_selector, split_title in zip(split_selectors, split_titles):
         if custom_series_splitter is not None:
             exps = split_selector.extract()
@@ -299,10 +312,13 @@ def get_plot_instruction(
             else:
                 group_selectors = [split_selector]
                 group_legends = [split_title]
-        to_plot = []
-        for group_selector, group_legend in zip(group_selectors, group_legends):
-            filtered_data = group_selector.extract()
-            if len(filtered_data) > 0:
+        list_of_list_of_plot_dicts = []
+        for plot_key in plot_keys:
+            to_plot = []
+            for group_selector, group_legend in zip(group_selectors, group_legends):
+                filtered_data = group_selector.extract()
+                if len(filtered_data) == 0:
+                    continue
                 if (best_filter_key
                         and best_filter_key not in group_keys
                         and best_filter_key not in split_keys):
@@ -355,7 +371,6 @@ def get_plot_instruction(
                                 exp.progress.get(plot_key, np.array([np.nan]))
                                 for exp in data
                             ]
-                            #                             progresses = [progress[:500] for progress in progresses ]
                             sizes = list(map(len, progresses))
                             max_size = max(sizes)
                             progresses = [
@@ -431,6 +446,7 @@ def get_plot_instruction(
                         to_plot.append(
                             AttrDict(
                                 legend=legend_post_processor(legend),
+                                plot_key=plot_key,
                                 **statistics
                             )
                         )
@@ -467,15 +483,16 @@ def get_plot_instruction(
                     to_plot.append(
                         AttrDict(
                             legend=legend_post_processor(group_legend),
+                            plot_key=plot_key,
                             **statistics
                         )
                     )
+            list_of_list_of_plot_dicts.append(to_plot)
 
-        if len(to_plot) > 0 and not gen_eps:
+        if len(list_of_list_of_plot_dicts) > 0 and not gen_eps:
             fig_title = split_title
-            # plots.append("<h3>%s</h3>" % fig_title)
             plots.append(make_plot(
-                to_plot,
+                list_of_list_of_plot_dicts,
                 use_median=use_median, title=fig_title,
                 plot_width=plot_width, plot_height=plot_height
             ))
@@ -649,7 +666,8 @@ def parse_float_arg(args, key):
 @app.route("/plot_div")
 def plot_div():
     args = flask.request.args
-    plot_key = args.get("plot_key")
+    plot_keys_json = args.get("plot_keys")
+    plot_keys = json.loads(plot_keys_json)
     split_keys_json = args.get("split_keys", "[]")
     split_keys = json.loads(split_keys_json)
     group_keys_json = args.get("group_keys", "[]")
@@ -692,7 +710,7 @@ def plot_div():
     else:
         custom_series_splitter = None
     plot_div = get_plot_instruction(
-        plot_key=plot_key,
+        plot_keys=plot_keys,
         split_keys=split_keys,
         filter_nan=filter_nan,
         group_keys=group_keys,
@@ -731,16 +749,16 @@ def safer_eval(some_string):
 @app.route("/")
 def index():
     if "AverageReturn" in plottable_keys:
-        plot_key = "AverageReturn"
+        plot_keys = ["AverageReturn"]
     elif len(plottable_keys) > 0:
-        plot_key = plottable_keys[0]
+        plot_keys = plottable_keys[0:1]
     else:
-        plot_key = None
-    plot_div = get_plot_instruction(plot_key=plot_key)
+        plot_keys = None
+    plot_div = get_plot_instruction(plot_keys=plot_keys)
     return flask.render_template(
         "main.html",
         plot_div=plot_div,
-        plot_key=plot_key,
+        plot_keys=plot_keys,
         group_keys=[],
         plottable_keys=plottable_keys,
         distinct_param_keys=[str(k) for k, v in distinct_params],
