@@ -99,7 +99,7 @@ def lookup(d, keys):
 
 def load_exps_data(
         exp_folder_paths,
-        data_filename,
+        data_filename='progress.csv',
         disable_variant=False,
 ):
     exps = []

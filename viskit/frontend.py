@@ -469,7 +469,9 @@ def get_plot_instruction(
                             [ps, np.ones(max_size - len(ps)) * np.nan]) for ps
                         in progresses]
                     window_size = np.maximum(
-                        int(np.round(max_size / float(100))), 1)
+                        int(np.round(max_size / float(100))),
+                        1,
+                    )
 
                     statistics = get_statistics(
                         progresses, use_median, normalize_error,
@@ -487,7 +489,8 @@ def get_plot_instruction(
                             **statistics
                         )
                     )
-            list_of_list_of_plot_dicts.append(to_plot)
+            if len(to_plot) > 0:
+                list_of_list_of_plot_dicts.append(to_plot)
 
         if len(list_of_list_of_plot_dicts) > 0 and not gen_eps:
             fig_title = split_title
