@@ -271,6 +271,8 @@ def get_plot_instruction(
         split_keys = []
     if group_keys is None:
         group_keys = []
+    if plot_height is None:
+        plot_height = 300 * len(plot_keys)
     for k, v in filters.items():
         selector = selector.where(k, str(v))
     for k, v in exclusions:
