@@ -810,11 +810,15 @@ if __name__ == "__main__":
     reload_data(args.dname)
     for i in range(10):
         port = args.port + i
+        complete = True
         try:
-            app.run(host='0.0.0.0', port=port, debug=args.debug)
             print("Done! View http://localhost:%d in your browser" % port)
+            app.run(host='0.0.0.0', port=port, debug=args.debug)
         except OSError as e:
-            if e.errno != 98:
-                raise e
-            print("Port {} is being used. Trying next port.".format(port))
-    print("All tried ports are busy. Try specifying a port with --port=6000")
+            if e.strerror == 'Address already in use':
+                complete = False
+                print("Port {} is being used. Trying next port.".format(port))
+        if complete:
+            break
+        if i == 9:
+            print("All tried ports are busy. Try specifying a port with --port=6000")
