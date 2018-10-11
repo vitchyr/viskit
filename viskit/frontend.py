@@ -808,7 +808,13 @@ if __name__ == "__main__":
                 args.data_paths.append(path)
     print("Importing data from {path}...".format(path=args.data_paths))
     reload_data(args.dname)
-    # port = 5000
-    # url = "http://0.0.0.0:{0}".format(port)
-    print("Done! View http://localhost:%d in your browser" % args.port)
-    app.run(host='0.0.0.0', port=args.port, debug=args.debug)
+    for i in range(10):
+        port = args.port + i
+        try:
+            app.run(host='0.0.0.0', port=port, debug=args.debug)
+            print("Done! View http://localhost:%d in your browser" % port)
+        except OSError as e:
+            if e.errno != 98:
+                raise e
+            print("Port {} is being used. Trying next port.".format(port))
+    print("All tried ports are busy. Try specifying a port with --port=6000")
