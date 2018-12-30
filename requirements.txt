@@ -1,4 +1,4 @@
-Flask==0.12.2
+Flask==1.0.2
 matplotlib==2.0.2
-plotly==1.9.6
+plotly==3.4.2
 numpy==1.11.3

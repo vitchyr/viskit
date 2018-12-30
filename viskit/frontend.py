@@ -100,7 +100,7 @@ def make_plot(
                 y=y_upper + y_lower[::-1],
                 fill='tozerox',
                 fillcolor=core.hex_to_rgb(color, 0.2),
-                line=go.Line(color='transparent'),
+                line=go.scatter.Line(color=core.hex_to_rgb(color, 0)),
                 showlegend=False,
                 legendgroup=plt.legend,
                 hoverinfo='none'
@@ -808,17 +808,11 @@ if __name__ == "__main__":
                 args.data_paths.append(path)
     print("Importing data from {path}...".format(path=args.data_paths))
     reload_data(args.dname)
-    for i in range(10):
-        port = args.port + i
-        complete = True
-        try:
-            print("Done! View http://localhost:%d in your browser" % port)
-            app.run(host='0.0.0.0', port=port, debug=args.debug)
-        except OSError as e:
-            if e.strerror == 'Address already in use':
-                complete = False
-                print("Port {} is being used. Trying next port.".format(port))
-        if complete:
-            break
-        if i == 9:
-            print("All tried ports are busy. Try specifying a port with --port=6000")
+    port = args.port
+    try:
+        print("View http://localhost:%d in your browser" % port)
+        app.run(host='0.0.0.0', port=port, debug=args.debug)
+    except OSError as e:
+        if e.strerror == 'Address already in use':
+            print("Port {} is busy. Try specifying a different port with ("
+                  "e.g.) --port=5001".format(port))
