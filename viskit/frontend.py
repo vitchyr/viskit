@@ -90,7 +90,10 @@ def make_plot(
                 y_upper = list(plt.percentile75)
                 y_lower = list(plt.percentile25)
             else:
-                x = list(range(len(plt.means)))
+                if 'x_means' in plt:
+                    x = list(plt.x_means)
+                else:
+                    x = list(range(len(plt.means)))
                 y = list(plt.means)
                 y_upper = list(plt.means + plt.stds)
                 y_lower = list(plt.means - plt.stds)
@@ -432,6 +435,7 @@ def get_plot_instruction(
                             np.concatenate(
                                 [ps, np.ones(max_size - len(ps)) * np.nan]) for
                             ps in progresses]
+
                         legend = '{} (mu: {:.3f}, std: {:.5f})'.format(
                             group_legend, best_regret, np.std(best_progress))
                         window_size = np.maximum(
@@ -470,13 +474,25 @@ def get_plot_instruction(
                         np.concatenate(
                             [ps, np.ones(max_size - len(ps)) * np.nan]) for ps
                         in progresses]
+                    x_progresses = [
+                        exp.progress.get('Epoch', np.array([np.nan])) for exp
+                        in filtered_data
+                    ]
+                    sizes = list(map(len, x_progresses))
+                    max_size = max(sizes)
+                    x_progresses = [
+                        np.concatenate(
+                            [ps, np.ones(max_size - len(ps)) * np.nan]) for ps
+                        in x_progresses]
+                    # x_progresses = None
+
                     window_size = np.maximum(
                         int(np.round(max_size / float(100))),
                         1,
                     )
 
                     statistics = get_statistics(
-                        progresses, use_median, normalize_error,
+                        progresses, use_median, normalize_error, x_progresses
                     )
                     statistics = process_statistics(
                         statistics,
@@ -550,7 +566,7 @@ def get_selector_score(key, selector, use_median, best_based_on_final):
         return np.nanmean(values)
 
 
-def get_statistics(progresses, use_median, normalize_errors):
+def get_statistics(progresses, use_median, normalize_errors, x_progresses=None):
     """
     Get some dictionary of statistics (e.g. the median, mean).
     :param progresses:
@@ -568,10 +584,22 @@ def get_statistics(progresses, use_median, normalize_errors):
         stds = np.nanstd(progresses, axis=0)
         if normalize_errors:
             stds /= np.sqrt(np.sum((1. - np.isnan(progresses)), axis=0))
-        return dict(
-            means=np.nanmean(progresses, axis=0),
-            stds=stds,
-        )
+
+        if x_progresses is None:
+            return dict(
+                means=np.nanmean(progresses, axis=0),
+                stds=stds,
+            )
+        else:
+            return dict(
+                means=np.nanmean(progresses, axis=0),
+                stds=stds,
+                x_means=np.nanmean(x_progresses, axis=0),
+            )
+        # return dict(
+        #     means=np.nanmean(progresses, axis=0),
+        #     stds=stds,
+        # )
 
 
 def process_statistics(
