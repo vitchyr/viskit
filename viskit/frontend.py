@@ -480,11 +480,13 @@ def get_plot_instruction(
                     ]
                     sizes = list(map(len, x_progresses))
                     max_size = max(sizes)
-                    x_progresses = [
-                        np.concatenate(
-                            [ps, np.ones(max_size - len(ps)) * np.nan]) for ps
-                        in x_progresses]
-                    # x_progresses = None
+                    if max_size > 1:
+                        x_progresses = [
+                            np.concatenate(
+                                [ps, np.ones(max_size - len(ps)) * np.nan]) for ps
+                            in x_progresses]
+                    else:
+                        x_progresses = None
 
                     window_size = np.maximum(
                         int(np.round(max_size / float(100))),
