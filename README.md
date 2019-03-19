@@ -25,7 +25,7 @@ python viskit/frontend.py path/to/dir/exp*
 ```
 
 # Installation
-Use `requirements.txt`, i.e.
+Install this repository using pip:
 ```
-pip install -r requirements.txt
+pip install -e .
 ```
