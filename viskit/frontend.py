@@ -5,7 +5,6 @@ from viskit.core import AttrDict
 sys.path.append('.')
 import matplotlib
 import os
-import pdb
 
 matplotlib.use('Agg')
 import flask  # import Flask, render_template, send_from_directory
