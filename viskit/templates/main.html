@@ -127,6 +127,26 @@
 
         </div>
         <div class="form-group">
+            <label class="control-label pull-left">X-Axis Attributes: </label>
+            <div class="btn-group pull-left" style="margin-left: 10px">
+                <button data-toggle="dropdown" class="btn btn-default dropdown-toggle">{{ x_keys }}<span
+                        class="caret"></span></button>
+                <ul class="dropdown-menu">
+                    {% for plottable_key in plottable_keys %}
+                        <li>
+                            <input type="radio" id="x_key_{{ loop.index0 }}" name="x_key"
+                                   value="{{ loop.index0 }}"
+                                    {% if plottable_key in x_keys %}
+                                   checked
+                                    {% endif %}
+                            />
+                            <label for="x_key_{{ loop.index0 }}">{{ plottable_key }}</label>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="form-group">
             <label class="control-label pull-left">(Figure) Split by:</label>
             {%  for split_idx in range(5) %}
                 <div class="btn-group pull-left" style="margin-left: 10px">
@@ -261,6 +281,10 @@
         $controlPanel.find("input[name=plot_key]:checked").each(function() {
             plotKeys.push(plottableKeys[$(this).val()]);
         });
+        var xKeys = []
+        $controlPanel.find("input[name=x_key]:checked").each(function() {
+            xKeys.push(plottableKeys[$(this).val()]);
+        });
         var splitKeys = [];
         $.each($("div.split-key-selector"), function (itr, div) {
             var val = $(div).find("input:checked").val();
@@ -341,6 +365,7 @@
         $.get("/plot_div",
                 $.extend({
                     "plot_keys": JSON.stringify(plotKeys),
+                    "x_keys": JSON.stringify(xKeys),
                     "split_keys": JSON.stringify(splitKeys),
                     "group_keys": JSON.stringify(groupKeys),
                     "best_filter_key": bestFilterKey,
@@ -377,6 +402,9 @@
     }
     $(function () {
         $("input[type=radio][name=plot_key]").change(function () {
+            updatePlot();
+        });
+        $("input[type=radio][name=x_key]").change(function () {
             updatePlot();
         });
         $("input[type=radio][name=split_key]").change(function () {

@@ -5,6 +5,7 @@ from viskit.core import AttrDict
 sys.path.append('.')
 import matplotlib
 import os
+import pdb
 
 matplotlib.use('Agg')
 import flask  # import Flask, render_template, send_from_directory
@@ -70,6 +71,11 @@ def make_plot(
     attribute.
     Each plot is an AttrDict which should have the elements used below.
     """
+
+    x_axis = [(subplot['plot_key'], subplot['means']) for plot_list in plot_lists for subplot in plot_list if subplot['x_key']]
+    plot_lists = [[subplot for subplot in plot_list] for plot_list in plot_lists if not plot_list[0]['x_key']] 
+    xlabel = x_axis[0][0] if len(x_axis) else 'iteration'
+
     p25, p50, p75 = [], [], []
     num_y_axes = len(plot_lists)
     fig = tools.make_subplots(rows=num_y_axes, cols=1, print_grid=False)
@@ -85,12 +91,19 @@ def make_plot(
                 p25.append(np.mean(plt.percentile25))
                 p50.append(np.mean(plt.percentile50))
                 p75.append(np.mean(plt.percentile75))
-                x = list(range(len(plt.percentile50)))
+                if x_axis:
+                    x = x_axis[idx][1]
+                else:
+                    x = list(range(len(plt.percentile50)))
                 y = list(plt.percentile50)
                 y_upper = list(plt.percentile75)
                 y_lower = list(plt.percentile25)
             else:
-                x = list(range(len(plt.means)))
+                print('not using median')
+                if x_axis:
+                    x = x_axis[idx][1]
+                else:
+                    x = list(range(len(plt.means)))
                 y = list(plt.means)
                 y_upper = list(plt.means + plt.stds)
                 y_lower = list(plt.means - plt.stds)
@@ -115,9 +128,13 @@ def make_plot(
             # plotly is 1-indexed like matplotlib for subplots
             y_idx_plotly = y_idx + 1
             fig.append_trace(values, y_idx_plotly, 1)
-            fig.append_trace(errors, y_idx_plotly, 1)
+            if not x_axis:
+                fig.append_trace(errors, y_idx_plotly, 1)
             fig['layout']['yaxis{}'.format(y_idx_plotly)].update(
                 title=plt.plot_key,
+            )
+            fig['layout']['xaxis{}'.format(y_idx_plotly)].update(
+                title=xlabel,
             )
 
     fig_div = po.plot(fig, output_type='div', include_plotlyjs=False)
@@ -228,9 +245,9 @@ def check_nan(exp):
     return all(
         not np.any(np.isnan(vals)) for vals in list(exp.progress.values()))
 
-
 def get_plot_instruction(
         plot_keys,
+        x_keys=[],
         split_keys=None,
         group_keys=None,
         best_filter_key=None,
@@ -252,6 +269,10 @@ def get_plot_instruction(
         normalize_error=False,
         custom_series_splitter=None,
 ):
+    if x_keys:
+        assert len(x_keys) == 1
+        plot_keys = x_keys + plot_keys
+
     """
     A custom filter might look like
     "lambda exp: exp.flat_params['algo_params_base_kwargs.batch_size'] == 64"
@@ -290,6 +311,7 @@ def get_plot_instruction(
     plots = []
     counter = 1
     print("Plot_keys:", plot_keys)
+    print("X keys:", x_keys)
     print("split_keys:", split_keys)
     print("group_keys:", group_keys)
     print("filters:", filters)
@@ -315,7 +337,7 @@ def get_plot_instruction(
                 group_selectors = [split_selector]
                 group_legends = [split_title]
         list_of_list_of_plot_dicts = []
-        for plot_key in plot_keys:
+        for plot_ind, plot_key in enumerate(plot_keys):
             to_plot = []
             for group_selector, group_legend in zip(group_selectors, group_legends):
                 filtered_data = group_selector.extract()
@@ -488,6 +510,7 @@ def get_plot_instruction(
                         AttrDict(
                             legend=legend_post_processor(group_legend),
                             plot_key=plot_key,
+                            x_key=plot_key in x_keys and plot_ind == 0,
                             **statistics
                         )
                     )
@@ -673,6 +696,8 @@ def plot_div():
     args = flask.request.args
     plot_keys_json = args.get("plot_keys")
     plot_keys = json.loads(plot_keys_json)
+    x_keys_json = args.get("x_keys")
+    x_keys = json.loads(x_keys_json)
     split_keys_json = args.get("split_keys", "[]")
     split_keys = json.loads(split_keys_json)
     group_keys_json = args.get("group_keys", "[]")
@@ -714,8 +739,10 @@ def plot_div():
         custom_series_splitter = safer_eval(custom_series_splitter)
     else:
         custom_series_splitter = None
+
     plot_div = get_plot_instruction(
         plot_keys=plot_keys,
+        x_keys=x_keys,
         split_keys=split_keys,
         filter_nan=filter_nan,
         group_keys=group_keys,
@@ -755,6 +782,8 @@ def safer_eval(some_string):
 def index():
     if "AverageReturn" in plottable_keys:
         plot_keys = ["AverageReturn"]
+    elif 'training/return-average' in plottable_keys:
+        plot_keys = ['training/return-average']
     elif len(plottable_keys) > 0:
         plot_keys = plottable_keys[0:1]
     else:
