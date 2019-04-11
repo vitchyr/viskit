@@ -132,6 +132,15 @@
                 <button data-toggle="dropdown" class="btn btn-default dropdown-toggle">{{ x_keys }}<span
                         class="caret"></span></button>
                 <ul class="dropdown-menu">
+                    <li>
+                        <input
+                                type="radio"
+                                id="x_key_0"
+                                name="x_key"
+                                value=""
+                        />
+                        <label for="x_key_0">(None)</label>
+                    </li>
                     {% for plottable_key in plottable_keys %}
                         <li>
                             <input type="radio" id="x_key_{{ loop.index0 }}" name="x_key"

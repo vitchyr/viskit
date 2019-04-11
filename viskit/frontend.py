@@ -72,7 +72,7 @@ def make_plot(
     """
 
     x_axis = [(subplot['plot_key'], subplot['means']) for plot_list in plot_lists for subplot in plot_list if subplot['x_key']]
-    plot_lists = [[subplot for subplot in plot_list] for plot_list in plot_lists if not plot_list[0]['x_key']] 
+    plot_lists = [[subplot for subplot in plot_list] for plot_list in plot_lists if not plot_list[0]['x_key']]
     xlabel = x_axis[0][0] if len(x_axis) else 'iteration'
 
     p25, p50, p75 = [], [], []
@@ -246,7 +246,7 @@ def check_nan(exp):
 
 def get_plot_instruction(
         plot_keys,
-        x_keys=[],
+        x_keys=None,
         split_keys=None,
         group_keys=None,
         best_filter_key=None,
@@ -268,8 +268,12 @@ def get_plot_instruction(
         normalize_error=False,
         custom_series_splitter=None,
 ):
+    if x_keys is None:
+        x_keys = []
     if x_keys:
         assert len(x_keys) == 1
+        if x_keys[0] is None:
+            x_keys = []
         plot_keys = x_keys + plot_keys
 
     """
