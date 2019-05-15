@@ -264,6 +264,7 @@
         </div>
         <div class="form-group ">
             <button class="btn btn-primary update">Update</button>
+            <button class="btn btn-primary reload">Reload</button>
             <button class="btn btn-info eps">Plot EPS</button>
             <span id="status"></span>
         </div>
@@ -403,8 +404,20 @@
                     }
                 });
     }
+    function _reload(callback, options) {
+        $.post("/reload-data",
+                function (data) {
+                    $("#status").html("Reloaded");
+                    if (callback !== undefined) {
+                        callback();
+                    }
+                });
+    }
     function updatePlot(callback) {
         _updatePlotInternal(callback, {});
+    }
+    function reload(callback) {
+        _reload(callback, {});
     }
     function genEPS(callback) {
         _updatePlotInternal(callback, {"eps": "True"});
@@ -424,6 +437,9 @@
         });
         $("button.update").click(function () {
             updatePlot();
+        });
+        $("button.reload").click(function () {
+            reload();
         });
         $("button.eps").click(function () {
             genEPS();

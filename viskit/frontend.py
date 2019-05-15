@@ -780,7 +780,6 @@ def safer_eval(some_string):
         raise Exception("string to eval looks suspicious")
     return eval(some_string, {'__builtins__': {}})
 
-
 @app.route("/")
 def index():
     if "AverageReturn" in plottable_keys:
@@ -804,13 +803,19 @@ def index():
     )
 
 
-def reload_data(data_filename):
+@app.route("/reload-data", methods=['POST'])
+def reload():
+    reload_data()
+    return 'Reloaded'
+
+
+def reload_data():
     global exps_data
     global plottable_keys
     global distinct_params
     exps_data = core.load_exps_data(
         args.data_paths,
-        data_filename,
+        args.dname,
         args.disable_variant,
     )
     plottable_keys = list(
@@ -839,7 +844,7 @@ if __name__ == "__main__":
             if os.path.isdir(path) and (subdirprefix in subdirname):
                 args.data_paths.append(path)
     print("Importing data from {path}...".format(path=args.data_paths))
-    reload_data(args.dname)
+    reload_data()
     port = args.port
     try:
         print("View http://localhost:%d in your browser" % port)
