@@ -45,6 +45,8 @@ exps_data = None
 plottable_keys = None
 distinct_params = None
 
+x_limit = None
+
 
 @app.route('/js/<path:path>')
 def send_js(path):
@@ -478,6 +480,21 @@ def get_plot_instruction(
                         exp.progress.get('Epoch', np.array([np.nan])) for exp
                         in filtered_data
                     ]
+
+                    if x_limit is not None:
+                        # print("x_progresses", len(x_progresses), [len(p) for p in x_progresses])
+                        # print("progresses", len(progresses), [len(p) for p in progresses])
+                        idx = [
+                            np.flatnonzero(exp <= x_limit) for exp
+                            in x_progresses
+                        ]
+                        # print("idx", len(idx), [len(p) for p in idx])
+                        for i in range(len(x_progresses)):
+                            progresses[i] = progresses[i][idx[i]]
+                            x_progresses[i] = x_progresses[i][idx[i]]
+                        # print("x_progresses post-process", len(x_progresses), [len(p) for p in x_progresses])
+                        # print("progresses post-process", len(progresses), [len(p) for p in progresses])
+
                     sizes = list(map(len, x_progresses))
                     max_size = max(sizes)
                     if max_size > 1:
@@ -825,7 +842,11 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--disable-variant", default=False, action='store_true')
     parser.add_argument("--dname", default='progress.csv', help='name of data file')
+    parser.add_argument("--xlimit", type=int, default=-1)
     args = parser.parse_args(sys.argv[1:])
+
+    if args.xlimit > 0:
+        x_limit = args.xlimit
 
     # load all folders following a prefix
     if args.prefix != "???":
