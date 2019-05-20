@@ -17,6 +17,22 @@ from plotly import tools
 import plotly.offline as po
 import plotly.graph_objs as go
 
+named_colors = [
+    'dodgerblue',
+    'darkorange',
+    'green',
+    'cyan',
+    'magenta',
+    'orange',
+    'yellow',
+    'black',
+    'blue',
+    'brown',
+    'lime',
+    'pink',
+    'purple',
+]
+
 
 def flatten(xs):
     return [x for y in xs for x in y]
@@ -55,6 +71,102 @@ def send_js(path):
 def send_css(path):
     return flask.send_from_directory('css', path)
 
+def create_bar_chart(
+        plot_lists,
+        use_median=False,
+        plot_width=None,
+        plot_height=None,
+        title=None,
+        value_i=-1,
+    ):
+    """
+    plot_lists is a list of lists.
+    Each outer list represents different y-axis attributes.
+    Each inner list represents different experiments to run, within that y-axis
+    attribute.
+    Each plot is an AttrDict which should have the elements used below.
+    """
+
+    x_axis = [(subplot['plot_key'], subplot['means']) for plot_list in plot_lists for subplot in plot_list if subplot['x_key']]
+    plot_lists = [[subplot for subplot in plot_list] for plot_list in plot_lists if not plot_list[0]['x_key']]
+    xlabel = x_axis[0][0] if len(x_axis) else 'iteration'
+
+    p25, p50, p75 = [], [], []
+    num_y_axes = len(plot_lists)
+    fig = tools.make_subplots(
+        rows=num_y_axes,
+        cols=1,
+        print_grid=False,
+        shared_xaxes=True,
+    )
+    fig.layout.update(
+        width=plot_width,
+        height=plot_height,
+        title=title,
+        barmode='group',
+    )
+    all_plot_keys = []
+    for plot_list in plot_lists:
+        all_plot_keys.append(plot_list[0].plot_key)
+    traces = []
+    num_exps = len(plot_lists[0])
+    for y_idx, plot_list in enumerate(plot_lists):
+        traces = []
+        y_idx_plotly = y_idx + 1
+        for plt_idx, plt in enumerate(plot_list):
+            if use_median:
+                value = plt.percentile50[value_i]
+                error = plt.percentile75[value_i] - value
+                error_minus = value - plt.percentile25[value_i]
+            else:
+                value = np.mean(plt.means)
+                error = plt.stds[value_i]
+                error_minus = plt.stds[value_i]
+            # convert numpy scalar to number
+            # value = value.item()
+            # error = error.item()
+            # error_minus = error_minus.item()
+            trace = go.Bar(
+                x=[plt.legend],
+                y=[value],
+                # TODO: implement this correctly. I should give the option of
+                # choosing another field as the error bar for this field.
+                # Currently, this uses the own field to compute std. This might
+                # be correct, but often will be misleading (e.g. "std of mean"
+                # vs "mean of std" if each trial measures its own mean/std).
+                # error_y=dict(
+                    # type='data',
+                    # symmetric=False,
+                    # array=[error],
+                    # arrayminus=[error_minus],
+                    # visible=True,
+                # ),
+                name=plt.legend,
+                showlegend=y_idx==0,
+                legendgroup=plt.legend,
+                marker=dict(
+                    color=named_colors[plt_idx % len(named_colors)],
+                ),
+            )
+            fig.append_trace(trace, y_idx_plotly, 1)
+        fig['layout']['yaxis{}'.format(y_idx_plotly)].update(
+            title=plt.plot_key,
+        )
+
+    fig_div = po.plot(
+        fig,
+        output_type='div',
+        include_plotlyjs=False,
+    )
+    if "footnote" in plot_list[0]:
+        footnote = "<br />".join([
+            r"<span><b>%s</b></span>: <span>%s</span>" % (
+                plt.legend, plt.footnote)
+            for plt in plot_list
+        ])
+        return r"%s<div>%s</div>" % (fig_div, footnote)
+    else:
+        return fig_div
 
 def make_plot(
         plot_lists,
@@ -266,6 +378,8 @@ def get_plot_instruction(
         custom_filter=None,
         legend_post_processor=None,
         normalize_error=False,
+        make_bar_chart=False,
+        value_i=-1,  # TODO: add option to set value_i
         custom_series_splitter=None,
 ):
     if x_keys is None:
@@ -522,11 +636,19 @@ def get_plot_instruction(
 
         if len(list_of_list_of_plot_dicts) > 0 and not gen_eps:
             fig_title = split_title
-            plots.append(make_plot(
-                list_of_list_of_plot_dicts,
-                use_median=use_median, title=fig_title,
-                plot_width=plot_width, plot_height=plot_height
-            ))
+            if make_bar_chart:
+                plots.append(create_bar_chart(
+                    list_of_list_of_plot_dicts,
+                    use_median=use_median, title=fig_title,
+                    plot_width=plot_width, plot_height=plot_height,
+                    value_i=value_i,
+                ))
+            else:
+                plots.append(make_plot(
+                    list_of_list_of_plot_dicts,
+                    use_median=use_median, title=fig_title,
+                    plot_width=plot_width, plot_height=plot_height
+                ))
 
         if gen_eps:
             make_plot_eps(to_plot, use_median=use_median, counter=counter)
@@ -719,6 +841,7 @@ def plot_div():
     only_show_best_sofar = args.get("only_show_best_sofar", "") == 'True'
     best_is_lowest = args.get("best_is_lowest", "") == 'True'
     normalize_error = args.get("normalize_error", "") == 'True'
+    make_bar_chart = args.get("make_bar_chart", "") == 'True'
     filter_nan = args.get("filter_nan", "") == 'True'
     smooth_curve = args.get("smooth_curve", "") == 'True'
     clip_plot_value = parse_float_arg(args, "clip_plot_value")
@@ -765,6 +888,7 @@ def plot_div():
         custom_filter=custom_filter,
         legend_post_processor=legend_post_processor,
         normalize_error=normalize_error,
+        make_bar_chart=make_bar_chart,
         custom_series_splitter=custom_series_splitter,
     )
     return plot_div
