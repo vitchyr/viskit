@@ -127,6 +127,42 @@
 
         </div>
         <div class="form-group">
+            <label class="control-label pull-left">X-Axis Attributes: </label>
+            <div class="btn-group pull-left" style="margin-left: 10px">
+                <button data-toggle="dropdown" class="btn btn-default dropdown-toggle">{{ x_keys }}<span
+                        class="caret"></span></button>
+                <ul class="dropdown-menu">
+                    <li>
+                        <input
+                                type="radio"
+                                id="x_key_0"
+                                name="x_key"
+                                value=""
+                        />
+                        <label for="x_key_0">(None)</label>
+                    </li>
+                    {% for plottable_key in plottable_keys %}
+                        <li>
+                            <input type="radio" id="x_key_{{ loop.index0 }}" name="x_key"
+                                   value="{{ loop.index0 }}"
+                                    {% if plottable_key in x_keys %}
+                                   checked
+                                    {% endif %}
+                            />
+                            <label for="x_key_{{ loop.index0 }}">{{ plottable_key }}</label>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="checkbox pull-left" style="margin-left: 10px">
+                <label><input type="checkbox" name="make_bar_chart" value="">
+                    Make Bar Chart
+                </label><br>
+            </div>
+        </div>
+        <div class="form-group">
             <label class="control-label pull-left">(Figure) Split by:</label>
             {%  for split_idx in range(5) %}
                 <div class="btn-group pull-left" style="margin-left: 10px">
@@ -235,6 +271,7 @@
         </div>
         <div class="form-group ">
             <button class="btn btn-primary update">Update</button>
+            <button class="btn btn-primary reload">Reload</button>
             <button class="btn btn-info eps">Plot EPS</button>
             <span id="status"></span>
         </div>
@@ -260,6 +297,10 @@
         var plotKeys = []
         $controlPanel.find("input[name=plot_key]:checked").each(function() {
             plotKeys.push(plottableKeys[$(this).val()]);
+        });
+        var xKeys = []
+        $controlPanel.find("input[name=x_key]:checked").each(function() {
+            xKeys.push(plottableKeys[$(this).val()]);
         });
         var splitKeys = [];
         $.each($("div.split-key-selector"), function (itr, div) {
@@ -307,6 +348,7 @@
         var filterNaN = $controlPanel.find("input[type=checkbox][name=filter_nan]").is(':checked');
         var smoothCurve = $controlPanel.find("input[type=checkbox][name=smooth_curve]").is(':checked');
         var normalizeError = $controlPanel.find("input[type=checkbox][name=normalize_error]").is(':checked');
+        var makeBarChart = $controlPanel.find("input[type=checkbox][name=make_bar_chart]").is(':checked');
         if (useMedian === true) {
             useMedian = "True";
         }
@@ -331,6 +373,9 @@
         if (normalizeError === true) {
             normalizeError = "True";
         }
+        if (makeBarChart === true) {
+            makeBarChart = "True";
+        }
         var clipPlotValue = $controlPanel.find("input[name=clip_plot_value]").val();
         var plotWidth = $controlPanel.find("input[name=plot_width]").val();
         var plotHeight = $controlPanel.find("input[name=plot_height]").val();
@@ -341,6 +386,7 @@
         $.get("/plot_div",
                 $.extend({
                     "plot_keys": JSON.stringify(plotKeys),
+                    "x_keys": JSON.stringify(xKeys),
                     "split_keys": JSON.stringify(splitKeys),
                     "group_keys": JSON.stringify(groupKeys),
                     "best_filter_key": bestFilterKey,
@@ -358,6 +404,7 @@
                     "legend_post_processor": legendPostProcessor,
                     "best_based_on_final": bestBasedOnFinal,
                     "normalize_error": normalizeError,
+                    "make_bar_chart": makeBarChart,
                     "custom_series_splitter": customSeriesSplitter,
                     "only_show_best_sofar": onlyShowBestSofar,
                 }, options),
@@ -369,14 +416,29 @@
                     }
                 });
     }
+    function _reload(callback, options) {
+        $.post("/reload-data",
+                function (data) {
+                    $("#status").html("Reloaded");
+                    if (callback !== undefined) {
+                        callback();
+                    }
+                });
+    }
     function updatePlot(callback) {
         _updatePlotInternal(callback, {});
+    }
+    function reload(callback) {
+        _reload(callback, {});
     }
     function genEPS(callback) {
         _updatePlotInternal(callback, {"eps": "True"});
     }
     $(function () {
         $("input[type=radio][name=plot_key]").change(function () {
+            updatePlot();
+        });
+        $("input[type=radio][name=x_key]").change(function () {
             updatePlot();
         });
         $("input[type=radio][name=split_key]").change(function () {
@@ -387,6 +449,9 @@
         });
         $("button.update").click(function () {
             updatePlot();
+        });
+        $("button.reload").click(function () {
+            reload();
         });
         $("button.eps").click(function () {
             genEPS();
