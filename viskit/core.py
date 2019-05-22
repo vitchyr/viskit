@@ -100,6 +100,7 @@ def lookup(d, keys):
 def load_exps_data(
         exp_folder_paths,
         data_filename='progress.csv',
+        params_filename='params.json',
         disable_variant=False,
 ):
     exps = []
@@ -109,7 +110,7 @@ def load_exps_data(
     for exp in exps:
         try:
             exp_path = exp
-            params_json_path = os.path.join(exp_path, "params.json")
+            params_json_path = os.path.join(exp_path, params_filename)
             variant_json_path = os.path.join(exp_path, "variant.json")
             progress_csv_path = os.path.join(exp_path, data_filename)
             if os.stat(progress_csv_path).st_size == 0:
@@ -123,7 +124,9 @@ def load_exps_data(
                 except IOError:
                     params = load_params(params_json_path)
             exps_data.append(AttrDict(
-                progress=progress, params=params, flat_params=flatten_dict(params)))
+                progress=progress,
+                params=params,
+                flat_params=flatten_dict(params)))
         except IOError as e:
             print(e)
     return exps_data

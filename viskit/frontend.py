@@ -823,7 +823,8 @@ def reload_data():
     global distinct_params
     exps_data = core.load_exps_data(
         args.data_paths,
-        args.dname,
+        args.data_filename,
+        args.params_filename,
         args.disable_variant,
     )
     plottable_keys = list(
@@ -839,7 +840,12 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", default=False)
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--disable-variant", default=False, action='store_true')
-    parser.add_argument("--dname", default='progress.csv', help='name of data file')
+    parser.add_argument("--data-filename",
+                        default='progress.csv',
+                        help='name of data file.')
+    parser.add_argument("--params-filename",
+                        default='params.json',
+                        help='name of params file.')
     args = parser.parse_args(sys.argv[1:])
 
     # load all folders following a prefix
