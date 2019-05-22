@@ -99,7 +99,6 @@ def make_plot(
                 y_upper = list(plt.percentile75)
                 y_lower = list(plt.percentile25)
             else:
-                print('not using median')
                 if x_axis:
                     x = x_axis[idx][1]
                 else:
