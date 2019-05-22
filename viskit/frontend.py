@@ -83,6 +83,7 @@ def make_plot(
         height=plot_height,
         title=title,
     )
+
     for y_idx, plot_list in enumerate(plot_lists):
         for idx, plt in enumerate(plot_list):
             color = core.color_defaults[idx % len(core.color_defaults)]
@@ -129,8 +130,15 @@ def make_plot(
             fig.append_trace(values, y_idx_plotly, 1)
             if not x_axis:
                 fig.append_trace(errors, y_idx_plotly, 1)
+            title = plt.plot_key
+            if len(title) > 30:
+                title_parts = title.split('/')
+                title = "<br />/".join(
+                    title_parts[:-1]
+                    + [r"<b>{}</b>".format(t) for t in title_parts[-1:]]
+                )
             fig['layout']['yaxis{}'.format(y_idx_plotly)].update(
-                title=plt.plot_key,
+                title=title,
             )
             fig['layout']['xaxis{}'.format(y_idx_plotly)].update(
                 title=xlabel,
