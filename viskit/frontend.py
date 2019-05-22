@@ -195,6 +195,7 @@ def make_plot(
         height=plot_height,
         title=title,
     )
+
     for y_idx, plot_list in enumerate(plot_lists):
         for idx, plt in enumerate(plot_list):
             color = core.color_defaults[idx % len(core.color_defaults)]
@@ -210,7 +211,6 @@ def make_plot(
                 y_upper = list(plt.percentile75)
                 y_lower = list(plt.percentile25)
             else:
-                print('not using median')
                 if x_axis:
                     x = x_axis[idx][1]
                 else:
@@ -241,8 +241,15 @@ def make_plot(
             fig.append_trace(values, y_idx_plotly, 1)
             if not x_axis:
                 fig.append_trace(errors, y_idx_plotly, 1)
+            title = plt.plot_key
+            if len(title) > 30:
+                title_parts = title.split('/')
+                title = "<br />/".join(
+                    title_parts[:-1]
+                    + [r"<b>{}</b>".format(t) for t in title_parts[-1:]]
+                )
             fig['layout']['yaxis{}'.format(y_idx_plotly)].update(
-                title=plt.plot_key,
+                title=title,
             )
             fig['layout']['xaxis{}'.format(y_idx_plotly)].update(
                 title=xlabel,
@@ -939,7 +946,8 @@ def reload_data():
     global distinct_params
     exps_data = core.load_exps_data(
         args.data_paths,
-        args.dname,
+        args.data_filename,
+        args.params_filename,
         args.disable_variant,
     )
     plottable_keys = list(
@@ -955,7 +963,12 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true", default=False)
     parser.add_argument("--port", type=int, default=5000)
     parser.add_argument("--disable-variant", default=False, action='store_true')
-    parser.add_argument("--dname", default='progress.csv', help='name of data file')
+    parser.add_argument("--data-filename",
+                        default='progress.csv',
+                        help='name of data file.')
+    parser.add_argument("--params-filename",
+                        default='params.json',
+                        help='name of params file.')
     args = parser.parse_args(sys.argv[1:])
 
     # load all folders following a prefix
