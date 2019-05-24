@@ -204,7 +204,7 @@ def make_plot(
                 p50.append(np.mean(plt.percentile50))
                 p75.append(np.mean(plt.percentile75))
                 if x_axis:
-                    x = x_axis[idx][1]
+                    x = list(x_axis[idx][1])
                 else:
                     x = list(range(len(plt.percentile50)))
                 y = list(plt.percentile50)
@@ -212,7 +212,7 @@ def make_plot(
                 y_lower = list(plt.percentile25)
             else:
                 if x_axis:
-                    x = x_axis[idx][1]
+                    x = list(x_axis[idx][1])
                 else:
                     x = list(range(len(plt.means)))
                 y = list(plt.means)
@@ -239,8 +239,7 @@ def make_plot(
             # plotly is 1-indexed like matplotlib for subplots
             y_idx_plotly = y_idx + 1
             fig.append_trace(values, y_idx_plotly, 1)
-            if not x_axis:
-                fig.append_trace(errors, y_idx_plotly, 1)
+            fig.append_trace(errors, y_idx_plotly, 1)
             title = plt.plot_key
             if len(title) > 30:
                 title_parts = title.split('/')
