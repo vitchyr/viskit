@@ -955,7 +955,8 @@ def reload_data():
     distinct_params = sorted(core.extract_distinct_params(exps_data))
 
 
-if __name__ == "__main__":
+def main():
+    global args
     parser = argparse.ArgumentParser()
     parser.add_argument("data_paths", type=str, nargs='*')
     parser.add_argument("--prefix", type=str, nargs='?', default="???")
@@ -989,3 +990,6 @@ if __name__ == "__main__":
         if e.strerror == 'Address already in use':
             print("Port {} is busy. Try specifying a different port with ("
                   "e.g.) --port=5001".format(port))
+
+if __name__ == "__main__":
+    main()
