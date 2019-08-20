@@ -227,7 +227,7 @@ def make_plot(
                 line=go.scatter.Line(color=core.hex_to_rgb(color, 0)),
                 showlegend=False,
                 legendgroup=plt.legend,
-                hoverinfo='none'
+                hoverinfo='none',
             )
             values = go.Scatter(
                 x=x,
@@ -235,6 +235,8 @@ def make_plot(
                 name=plt.legend,
                 legendgroup=plt.legend,
                 line=dict(color=core.hex_to_rgb(color)),
+                hoverlabel=dict(namelength=-1),
+                hoverinfo='all',
             )
             # plotly is 1-indexed like matplotlib for subplots
             y_idx_plotly = y_idx + 1
