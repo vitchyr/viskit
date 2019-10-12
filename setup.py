@@ -10,5 +10,8 @@ setup(name='viskit',
     version='0.1',
     install_requires=REQUIRED_PACKAGES,
     include_package_data=True,
+    package_data={
+        'viskit': ['static/css/*', 'static/js/*', 'templates/main.html'],
+    },
     packages=[p for p in find_packages() if p.startswith('viskit')],
     description="rllab's viskit with some added features")
