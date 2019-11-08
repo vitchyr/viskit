@@ -159,7 +159,10 @@ def smart_eval(string):
 
 
 
-def extract_distinct_params(exps_data, excluded_params=('seed', 'log_dir'), l=1):
+def extract_distinct_params(exps_data,
+                            # excluded_params=('seed', 'log_dir'),
+                            excluded_params=['log_dir'],
+                            l=1):
     # all_pairs = unique(flatten([d.flat_params.items() for d in exps_data]))
     # if logger:
     #     logger("(Excluding {excluded})".format(excluded=', '.join(excluded_params)))
@@ -201,6 +204,7 @@ def extract_distinct_params(exps_data, excluded_params=('seed', 'log_dir'), l=1)
         import ipdb; ipdb.set_trace()
     proposals = [(k, [x[1] for x in v])
                  for k, v in itertools.groupby(stringified_pairs, lambda x: x[0])]
+
     filtered = [
         (k, v) for (k, v) in proposals
         if k == 'version' or (
