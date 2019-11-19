@@ -4,7 +4,7 @@ from setuptools import find_packages
 from setuptools import setup
 
 
-REQUIRED_PACKAGES = ['Flask==1.1.1', 'matplotlib==2.0.2', 'plotly==3.4.2', 'numpy==1.11.3']
+REQUIRED_PACKAGES = ['Flask==1.1.1', 'matplotlib', 'plotly==3.4.2', 'numpy']
 
 setup(name='viskit',
     version='0.1',
