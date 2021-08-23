@@ -80,6 +80,8 @@ def load_params(params_json_path):
             del data["args_data"]
         if "exp_name" not in data:
             data["exp_name"] = params_json_path.split("/")[-2]
+            if len(os.listdir('/'.join(params_json_path.split("/")[:-2]))) == 1:
+                data["exp_name"] = params_json_path.split("/")[-3]
     return data
 
 
@@ -116,18 +118,22 @@ def load_exps_data(
             if os.stat(progress_csv_path).st_size == 0:
                 progress_csv_path = os.path.join(exp_path, "log.txt")
             progress = load_progress(progress_csv_path)
-            if disable_variant:
-                params = load_params(params_json_path)
-            else:
+            if not disable_variant:
                 try:
                     params = load_params(variant_json_path)
                 except IOError:
                     params = load_params(params_json_path)
+            else:
+                params = {}
+                # params = load_params(params_json_path)
+            params['directory'] = exp_path.split('/')[-1]
             exps_data.append(AttrDict(
                 progress=progress,
                 params=params,
                 flat_params=flatten_dict(params)))
         except IOError as e:
+            print(e)
+        except csv.Error as e:
             print(e)
     return exps_data
 
@@ -162,7 +168,9 @@ def smart_eval(string):
 
 
 
-def extract_distinct_params(exps_data, excluded_params=('seed', 'log_dir'), l=1):
+def extract_distinct_params(exps_data, excluded_params=None, l=1):
+    if excluded_params is None:
+        excluded_params = []
     # all_pairs = unique(flatten([d.flat_params.items() for d in exps_data]))
     # if logger:
     #     logger("(Excluding {excluded})".format(excluded=', '.join(excluded_params)))

@@ -149,8 +149,15 @@ def create_bar_chart(
                 ),
             )
             fig.append_trace(trace, y_idx_plotly, 1)
+        plot_title = plt.plot_key
+        if len(plot_title) > 30:
+            title_parts = plot_title.split('/')
+            plot_title = "<br />/".join(
+                title_parts[:-1]
+                + [r"<b>{}</b>".format(t) for t in title_parts[-1:]]
+            )
         fig['layout']['yaxis{}'.format(y_idx_plotly)].update(
-            title=plt.plot_key,
+            title=plot_title,
         )
 
     fig_div = po.plot(
@@ -219,6 +226,9 @@ def make_plot(
                 y_upper = list(plt.means + plt.stds)
                 y_lower = list(plt.means - plt.stds)
 
+            hoverinfo = [
+                    str(y) for y in y_upper + y_lower[::-1]
+            ]
             errors = go.Scatter(
                 x=x + x[::-1],
                 y=y_upper + y_lower[::-1],
@@ -226,8 +236,11 @@ def make_plot(
                 fillcolor=core.hex_to_rgb(color, 0.2),
                 line=go.scatter.Line(color=core.hex_to_rgb(color, 0)),
                 showlegend=False,
+                # showlegend=True,
                 legendgroup=plt.legend,
-                hoverinfo='none'
+                hoverinfo='none',
+                # hovertext=hoverinfo,
+                # hovermode='x'
             )
             values = go.Scatter(
                 x=x,
@@ -240,6 +253,9 @@ def make_plot(
             y_idx_plotly = y_idx + 1
             fig.append_trace(values, y_idx_plotly, 1)
             fig.append_trace(errors, y_idx_plotly, 1)
+            fig['layout'].update(
+                hovermode='x',
+            )
             title = plt.plot_key
             if len(title) > 30:
                 title_parts = title.split('/')
@@ -389,7 +405,12 @@ def get_plot_instruction(
         custom_series_splitter=None,
 ):
     if x_keys is None:
-        x_keys = []
+        if 'Number of env steps total' in plottable_keys:
+            x_keys = ['Number of env steps total']
+        if 'expl/num steps total' in plottable_keys:
+            x_keys = ['expl/num steps total']
+        else:
+            x_keys = []
     if x_keys:
         assert len(x_keys) == 1
         if x_keys[0] is None:
@@ -614,6 +635,7 @@ def get_plot_instruction(
                     progresses = [
                         np.concatenate(
                             [ps, np.ones(max_size - len(ps)) * np.nan]) for ps
+                            # [ps[0], np.ones(2) * np.nan]) for ps
                         in progresses]
                     window_size = np.maximum(
                         int(np.round(max_size / float(100))),
@@ -945,7 +967,7 @@ def reload_data():
     global distinct_params
     exps_data = core.load_exps_data(
         args.data_paths,
-        args.data_filename,
+        args.dname,
         args.params_filename,
         args.disable_variant,
     )
@@ -960,9 +982,9 @@ if __name__ == "__main__":
     parser.add_argument("data_paths", type=str, nargs='*')
     parser.add_argument("--prefix", type=str, nargs='?', default="???")
     parser.add_argument("--debug", action="store_true", default=False)
-    parser.add_argument("--port", type=int, default=5000)
+    parser.add_argument("--port", '-p', type=int, default=5001)
     parser.add_argument("--disable-variant", default=False, action='store_true')
-    parser.add_argument("--data-filename",
+    parser.add_argument("--dname",
                         default='progress.csv',
                         help='name of data file.')
     parser.add_argument("--params-filename",
